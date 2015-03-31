@@ -51,24 +51,32 @@ void radioSendString(char *str) {
 }
 
 int wireGetCmpString(volatile unsigned int *timer, char str[]) {
-	char robo[100] = "";
+	char robo[100] = "BADSTRING";
 	int counter = 0;
 
 	while (*timer) {
 		if (rxWireFlag) {
-			rxWireFlag = 0;
-			if (wireReceived == '\r' || wireReceived == '\n') {
-				robo[counter] == 0x00;
+			if (wireReceived == '\r') {
+				robo[counter] = 0x00;
+				rxWireFlag = 0;
 				if(!strcmp(robo, str)) {
+					rxWireFlag = 0;
+					radioSendString(robo);
 					return 1;
 				}
 				else {
+					rxWireFlag = 0;
+					radioSendString(robo);
 					return -1;
 				}
 			}
-			else robo[counter++] = wireReceived;
+			else {
+				rxWireFlag = 0;
+				robo[counter++] = wireReceived;
+			}
 		}
 	}
+	rxWireFlag = 0;
 	return 0;
 }
 

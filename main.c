@@ -13,6 +13,8 @@ void getSensorData();
 void txData(char *, int);
 int rxData(char *, int);
 void dataToTerminal();
+int basicRoboControl();
+int roboControl();
 
 // SYSINIT FUNCTION
 // Sets port data directions and initializes systems
@@ -42,7 +44,7 @@ void sysInit() {
 	wireInit();
 	radioInit();
 	timerInit();
-	wireSendString("Starting\r\n");
+	//radioSendString("Starting\r\n");
 	sei();
 }
 
@@ -95,23 +97,27 @@ int main() {
 	#ifdef RECEIVER
 	
 	while(1) {
-		if (roboteqErrCnt > ROBOTEQ_ERROR_LIMIT) 
+		if (roboteqErrCnt > ROBOTEQ_ERROR_LIMIT) {
+			PORTC &= ~TARGET_LED;
 			roboteqStatus = 0;
+		}
 
 		if (roboteqStatus == 0)
 			while(roboteqInit() != 1);
 
+		while(1) roboteqInit();
+
 		// Am I ready to receive data?
-		if (rcvrFlag == 1) {
+		if (!rcvrFlag) {
 			if (targetDevice == TERMINAL) {
-				wireSendString("Requesting data...\r\n");
+				//wireSendString("Requesting data...\r\n");
 			}
 			else {
-				sprintf(buffer, "Requesting data #%d...\r\n", counter++);
+				//sprintf(buffer, "Requesting data #%d...\r\n", counter++);
 				wireSendString(buffer);
 			}
+			rcvrFlag = RCVR_DELAY;
 			radioSend(RCVR_READY);
-			rcvrFlag = 0;
 		}
 
 		// Start byte from transmitter?
@@ -122,8 +128,12 @@ int main() {
 					dataToTerminal();
 				}
 				else if (targetDevice == ROBOTEQ) {
-					dataToTerminal();
-					dataToRoboteq();  // IMPLEMENT THIS!
+					//if(!roboControl())
+					if(!basicRoboControl())
+						roboteqErrCnt++;
+					else {
+						roboteqErrCnt = 0;
+					}
 				}
 			}
 			else {  // data bad?
@@ -231,6 +241,34 @@ void dataToTerminal() {
 	wireSendString(buf);
 	sprintf(buf, "Switch1 = %s\r\n\n", (data[4])?"Open":"Closed");
 	wireSendString(buf);
+}
+
+
+int basicRoboControl() {
+	setRoboPower(1, 20);
+	setRoboPosition(1, 50);
+	setRoboPower(2, 20);
+	setRoboPosition(2, 75);
+	setRoboPower(3, 20);
+	setRoboPosition(3, 25);
+	return 1;
+}
+
+int roboControl() {
+	if(!setRoboPower(1, 20))
+		return 0;
+	if(!setRoboPosition(1, data[0]))
+		return 0;
+	if(!setRoboPower(2, 20))
+		return 0;
+	if(!setRoboPosition(2, data[1]))
+		return 0;
+	if(!setRoboPower(3, 20))
+		return 0;
+	if(!setRoboPosition(3, data[2]))
+		return 0;
+
+	return 1;
 }
 
 

@@ -5,8 +5,10 @@
 ISR(TIMER0_OVF_vect) {
 	twentyFiveMS_Timer--;
 	if(!twentyFiveMS_Timer) {  // Fires every 24.576ms
-		if (!rcvrFlag)
-			rcvrFlag = 1;
+		#ifdef RECEIVER
+			if(rcvrFlag)
+				rcvrFlag--;
+		#endif
 
 		secondTimer--;
 		if(!secondTimer) {  // Fires every 1.007616s
@@ -49,12 +51,13 @@ ISR(USART1_RX_vect) {
 	radioReceived = UDR1;
 	if (radioReceived == RCVR_READY) 
 		rcvrFlag = 1;
-	else if (radioReceived == START_BYTE)
+	else if (radioReceived == START_BYTE) {
 		startDataFlag = 1;
+		PORTC |= RADIO_LED;
+	}
 	else if (radioReceived == CONFIG_CMD)
 		configFlag = 1;
 	else if (wireReceived == ROBOTEQ_CONFIRM)
 		roboteqFlag = 1;
-	PORTC |= RADIO_LED;
 	radioAssocTmr = RADIO_ASSOC_LIMIT;
 }

@@ -1,32 +1,55 @@
 #include "defs.h"
 #include "serial.h"
+#include <stdio.h>
 
 
 // GETROBOTEQCONFIRM FUNCTION
 int getRoboteqConfirm() {	
 	roboteqResponseTime = TARGET_ASSOC_LIMIT;
-
+	rxWireFlag = 0;
 	while(!rxWireFlag) {
 		if (!roboteqResponseTime) {
-			wireSendString("Command not acknowledged!\r\n");
+			radioSendString("Command not acknowledged!\r\n");
 			return 0;
 		}
 	}
 
 	rxWireFlag = 0;
+	radioSend(wireReceived);
 	if (wireReceived == ROBOTEQ_CONFIRM) {
-		wireSendString("RoboteQ initialized!\r\n");
+		radioSendString("RoboteQ confirmed!\r\n");
 		roboteqStatus = 1;
-		PORTC |= TARGET_LED;
+		//PORTC |= TARGET_LED;
 		return 1;
 	}
 	else {
-		wireSendString("Bad response!\r\n");
+		radioSendString("Bad response!\r\n");
 		return 0;
 	}
 
 }
 
+// DATATOROBOTEQ FUNCTION
+// Forms strings from sensor data and transmits to Roboteq
+// Returns 1 if data acknowledged, 0 otherwise
+int dataToRoboteq(char *str) {
+	wireSendString(str);
+	return getRoboteqConfirm();
+}
+
+int setRoboPosition(int chan, int pos) {
+	char buf[100];
+	sprintf(buf, "!G %d %d_", chan, pos*10);
+	wireSendString(buf);
+	return getRoboteqConfirm();
+}
+
+int setRoboPower(int chan, int pow) {
+	char buf[100];
+	sprintf(buf, "!P %d %d_", chan, pow*10);
+	wireSendString(buf);
+	return getRoboteqConfirm();
+}
 
 // ROBOTEQINIT FUNCTION
 // Queries Roboteq for model number and initializes hardware
@@ -36,33 +59,39 @@ int roboteqInit() {
 
 	PORTC &= ~TARGET_LED;
 	roboteqFlag = 0;
-	wireSendString("Requesting RoboteQ Model #...\r\n");
-	roboteqResponseTime = TARGET_ASSOC_LIMIT;
 
+	/*
+	radioSendString("?fid_");
+
+	rxWireFlag = 0;
+	wireSendString("?fid_");
+	roboteqResponseTime = TARGET_ASSOC_LIMIT;
 	response = wireGetCmpString(&roboteqResponseTime, ROBOTEQ_MODEL);
+	//response = 1;
+	
+	//PORTC |= TARGET_LED;
+	//while(1);
 	if (response == 1) {
-		wireSendString("Success!\r\n");
+		radioSendString("Success!\r\n");
 	}
 	else if (response == -1) {
-		wireSendString("Failure!\r\n");
+		radioSendString("Bad string response\r\n");
 		return 0;
 	}
 	else {
-		wireSendString("Time out!\r\n");
+		radioSendString("Time out!\r\n");
 		return 0;
 	}
 
-	rxWireFlag = 0;
-	wireSendString("Turning off verbose output...\r\n");
+	while(1);*/
 
-	return getRoboteqConfirm();
+	if (!dataToRoboteq("^ECHOF 1_")) return 0;
+	if (!setRoboPower(1, 50)) return 0;
+	if (!setRoboPosition(1, 50)) return 0;
+	roboteqErrCnt = 0;
+	PORTC |= TARGET_LED;
+
+	return 1;
 }
 
 
-// DATATOROBOTEQ FUNCTION
-// Forms strings from sensor data and transmits to Roboteq
-// Returns 1 if data acknowledged, 0 otherwise
-int dataToRoboteq() {
-	wireSendString("hello roboteq\r\n");
-	return getRoboteqConfirm();
-}

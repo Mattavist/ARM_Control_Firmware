@@ -3,8 +3,8 @@
 #include <avr/io.h>
 
 // Module Definition
-#define TRANSMITTER
-//#define RECEIVER
+//#define TRANSMITTER
+#define RECEIVER
 
 // Flags and comands
 #define DELAY 10
@@ -26,8 +26,9 @@
 #define ROBOTEQ_CONFIRM '+'
 #define ROBOTEQ 1
 #define TERMINAL 2
-#define ROBOTEQ_MODEL "robo"
+#define ROBOTEQ_MODEL "FID=Roboteq v1.3 RCB290 10/10/2013"
 #define ROBOTEQ_ERROR_LIMIT 10
+#define RCVR_DELAY 3
 
 // Shared Variables
 #ifdef MAIN
