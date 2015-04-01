@@ -102,10 +102,8 @@ int main() {
 			roboteqStatus = 0;
 		}
 
-		if (roboteqStatus == 0)
-			while(roboteqInit() != 1);
-
-		while(1) roboteqInit();
+		while(roboteqStatus == 0)
+			roboteqInit();
 
 		// Am I ready to receive data?
 		if (!rcvrFlag) {
@@ -128,12 +126,8 @@ int main() {
 					dataToTerminal();
 				}
 				else if (targetDevice == ROBOTEQ) {
-					//if(!roboControl())
-					if(!basicRoboControl())
-						roboteqErrCnt++;
-					else {
-						roboteqErrCnt = 0;
-					}
+					//roboControl();
+					basicRoboControl();
 				}
 			}
 			else {  // data bad?

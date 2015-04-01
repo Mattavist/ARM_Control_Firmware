@@ -40,24 +40,28 @@ ISR(USART0_RX_vect) {
 		startDataFlag = 1;
 	else if (wireReceived == CONFIG_CMD)
 		configFlag = 1;
-	else if (wireReceived == ROBOTEQ_CONFIRM)
+	else if (wireReceived == ROBOTEQ_CONFIRM) {
 		roboteqFlag = 1;
-	targetAssocTmr = TARGET_ASSOC_LIMIT;
+		targetAssocTmr = TARGET_ASSOC_LIMIT;
+	}
 }
 
 // Radio TTL Rx data interrupt
 ISR(USART1_RX_vect) { 
     rxRadioFlag = 1;
 	radioReceived = UDR1;
-	if (radioReceived == RCVR_READY) 
+	if (radioReceived == RCVR_READY) {
 		rcvrFlag = 1;
+		PORTC |= RADIO_LED;
+		radioAssocTmr = RADIO_ASSOC_LIMIT;
+	}
 	else if (radioReceived == START_BYTE) {
 		startDataFlag = 1;
 		PORTC |= RADIO_LED;
+		radioAssocTmr = RADIO_ASSOC_LIMIT;
 	}
 	else if (radioReceived == CONFIG_CMD)
 		configFlag = 1;
 	else if (wireReceived == ROBOTEQ_CONFIRM)
 		roboteqFlag = 1;
-	radioAssocTmr = RADIO_ASSOC_LIMIT;
 }

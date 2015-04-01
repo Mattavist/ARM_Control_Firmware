@@ -10,6 +10,7 @@ int getRoboteqConfirm() {
 	while(!rxWireFlag) {
 		if (!roboteqResponseTime) {
 			radioSendString("Command not acknowledged!\r\n");
+			roboteqErrCnt++;
 			return 0;
 		}
 	}
@@ -18,12 +19,13 @@ int getRoboteqConfirm() {
 	radioSend(wireReceived);
 	if (wireReceived == ROBOTEQ_CONFIRM) {
 		radioSendString("RoboteQ confirmed!\r\n");
-		roboteqStatus = 1;
+		roboteqErrCnt = 0;
 		//PORTC |= TARGET_LED;
 		return 1;
 	}
 	else {
 		radioSendString("Bad response!\r\n");
+		roboteqErrCnt++;
 		return 0;
 	}
 
@@ -88,6 +90,7 @@ int roboteqInit() {
 	if (!dataToRoboteq("^ECHOF 1_")) return 0;
 	if (!setRoboPower(1, 50)) return 0;
 	if (!setRoboPosition(1, 50)) return 0;
+	roboteqStatus = 1;
 	roboteqErrCnt = 0;
 	PORTC |= TARGET_LED;
 
