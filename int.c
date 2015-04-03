@@ -8,6 +8,9 @@ ISR(TIMER0_OVF_vect) {
 		#ifdef RECEIVER
 			if(rcvrFlag)
 				rcvrFlag--;
+
+			if(roboteqFlag)
+				roboteqFlag--;
 		#endif
 
 		secondTimer--;

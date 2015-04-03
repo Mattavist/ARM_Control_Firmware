@@ -44,7 +44,7 @@ void sysInit() {
 	wireInit();
 	radioInit();
 	timerInit();
-	//radioSendString("Starting\r\n");
+	radioSendString("Starting\r\n");
 	sei();
 }
 
@@ -104,6 +104,13 @@ int main() {
 
 		while(roboteqStatus == 0)
 			roboteqInit();
+
+		if(!roboteqFlag) {
+			//if(!roboControl())
+			if(!basicRoboControl())
+				roboteqErrCnt++;
+			roboteqFlag = ROBOTEQ_DELAY;
+		}
 
 		// Am I ready to receive data?
 		if (!rcvrFlag) {
@@ -241,10 +248,10 @@ void dataToTerminal() {
 int basicRoboControl() {
 	setRoboPower(1, 20);
 	setRoboPosition(1, 50);
-	setRoboPower(2, 20);
-	setRoboPosition(2, 75);
-	setRoboPower(3, 20);
-	setRoboPosition(3, 25);
+	//setRoboPower(2, 20);
+	//setRoboPosition(2, 75);
+	setRoboPower(1, 20);
+	setRoboPosition(1, 25);
 	return 1;
 }
 

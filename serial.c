@@ -51,7 +51,7 @@ void radioSendString(char *str) {
 }
 
 int wireGetCmpString(volatile unsigned int *timer, char str[]) {
-	char robo[100] = "BADSTRING";
+	char robo[100] = "";
 	int counter = 0;
 
 	while (*timer) {
@@ -62,6 +62,7 @@ int wireGetCmpString(volatile unsigned int *timer, char str[]) {
 				if(!strcmp(robo, str)) {
 					rxWireFlag = 0;
 					radioSendString(robo);
+					radioSendString("\r\n");
 					return 1;
 				}
 				else {

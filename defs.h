@@ -1,5 +1,5 @@
 // uC definitions
-#define F_CPU 8000000UL	 // set the CPU clock
+#define F_CPU 7372800UL	 // set the CPU clock
 #include <avr/io.h>
 
 // Module Definition
@@ -29,6 +29,7 @@
 #define ROBOTEQ_MODEL "FID=Roboteq v1.3 RCB290 10/10/2013"
 #define ROBOTEQ_ERROR_LIMIT 10
 #define RCVR_DELAY 3
+#define ROBOTEQ_DELAY 4
 
 // Shared Variables
 #ifdef MAIN
