@@ -30,6 +30,7 @@
 #define ROBOTEQ_ERROR_LIMIT 10
 #define RCVR_DELAY 3
 #define ROBOTEQ_DELAY 4
+#define PING "^ECHOF 1_"
 
 // Shared Variables
 #ifdef MAIN
@@ -53,6 +54,7 @@
 	unsigned char dataMin[NUM_ADC_CHANS];
 	unsigned char dataMax[NUM_ADC_CHANS];
 	unsigned char targetDevice;
+	unsigned char dataValid;
 #else
 	extern volatile unsigned char rxWireFlag;  // Data ready in wired USART RX buffer
 	extern volatile unsigned char rxRadioFlag;  // Data ready in wireless USART RX buffer
@@ -74,4 +76,5 @@
 	extern unsigned char dataMin[NUM_ADC_CHANS];
 	extern unsigned char dataMax[NUM_ADC_CHANS];
 	extern unsigned char targetDevice;
+	extern unsigned char dataValid;
 #endif

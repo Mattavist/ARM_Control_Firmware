@@ -106,10 +106,17 @@ int main() {
 			roboteqInit();
 
 		if(!roboteqFlag) {
-			//if(!roboControl())
-			if(!basicRoboControl())
-				roboteqErrCnt++;
-			roboteqFlag = ROBOTEQ_DELAY;
+			if (dataValid) {
+				//if(!roboControl())
+				if(!basicRoboControl())
+					roboteqErrCnt++;
+				roboteqFlag = ROBOTEQ_DELAY;
+				dataValid = 0;
+			}
+			// If there's no new data to send ping the RoboteQ
+			// to feed the watchdog and confirm response
+			else
+				dataToRoboteq(PING);
 		}
 
 		// Am I ready to receive data?
@@ -127,19 +134,10 @@ int main() {
 
 		// Start byte from transmitter?
 		if (startDataFlag == 1) {
-			// populate the buffer
-			if (rxData(data, NUM_ADC_CHANS + NUM_DIGITAL_CHANS)) {
-				if (targetDevice == TERMINAL) {
-					dataToTerminal();
-				}
-				else if (targetDevice == ROBOTEQ) {
-					//roboControl();
-					basicRoboControl();
-				}
-			}
-			else {  // data bad?
-				// report error to transmitter?
-			}
+			if (rxData(data, NUM_ADC_CHANS + NUM_DIGITAL_CHANS))
+				dataValid = 1;
+			else
+				dataValid = 0;
 			startDataFlag = 0;
 		}
 
