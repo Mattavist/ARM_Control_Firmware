@@ -3,25 +3,28 @@
 
 // Timer system interrupt, flips flags
 ISR(TIMER0_OVF_vect) {
-	twentyFiveMS_Timer--;
-	if(!twentyFiveMS_Timer) {  // Fires every 24.576ms
+	twentyMS_Tmr--;
+	if(!twentyMS_Tmr) {  // Fires every 20ms
 		#ifdef RECEIVER
-			if(rcvrFlag)
-				rcvrFlag--;
+			if(rcvrTmr)
+				rcvrTmr--;
 
-			if(roboteqFlag)
-				roboteqFlag--;
+			if(roboteqTmr)
+				roboteqTmr--;
+
+			if(radioTmr)
+				radioTmr--;
 		#endif
 
-		secondTimer--;
-		if(!secondTimer) {  // Fires every 1.007616s
-			secondTimer = INTS_PER_SECOND;
+		secondTmr--;
+		if(!secondTmr) {  // Fires every second
+			secondTmr = INTS_PER_SECOND;
 
-			if(cal_time)
-				cal_time--;
+			if(calTmr)
+				calTmr--;
 
-			if(roboteqResponseTime)
-				roboteqResponseTime--;
+			if(roboteqResponseTmr)
+				roboteqResponseTmr--;
 
 			if (radioAssocTmr)
 				radioAssocTmr--;
@@ -29,7 +32,7 @@ ISR(TIMER0_OVF_vect) {
 			if (targetAssocTmr)
 				targetAssocTmr--;
 		}
-		twentyFiveMS_Timer = INTS_PER_25MS;
+		twentyMS_Tmr = INTS_PER_20MS;
 	}
 }
 
@@ -38,13 +41,13 @@ ISR(USART0_RX_vect) {
     rxWireFlag = 1;
 	wireReceived = UDR0;
 	if (wireReceived == RCVR_READY) 
-		rcvrFlag = 1;
+		rcvrTmr = 1;
 	else if (wireReceived == START_BYTE)
 		startDataFlag = 1;
 	else if (wireReceived == CONFIG_CMD)
 		configFlag = 1;
 	else if (wireReceived == ROBOTEQ_CONFIRM) {
-		roboteqFlag = 1;
+		roboteqTmr = 1;
 		targetAssocTmr = TARGET_ASSOC_LIMIT;
 	}
 }
@@ -54,7 +57,7 @@ ISR(USART1_RX_vect) {
     rxRadioFlag = 1;
 	radioReceived = UDR1;
 	if (radioReceived == RCVR_READY) {
-		rcvrFlag = 1;
+		rcvrTmr = 1;
 		PORTC |= RADIO_LED;
 		radioAssocTmr = RADIO_ASSOC_LIMIT;
 	}
@@ -66,5 +69,5 @@ ISR(USART1_RX_vect) {
 	else if (radioReceived == CONFIG_CMD)
 		configFlag = 1;
 	else if (wireReceived == ROBOTEQ_CONFIRM)
-		roboteqFlag = 1;
+		roboteqTmr = 1;
 }

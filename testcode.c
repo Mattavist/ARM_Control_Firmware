@@ -118,7 +118,7 @@
 void processButton() {	
 	_delay_ms(10);
 	//PORTC ^= 0x04;
-	rcvrFlag = 1;
+	rcvrTmr = 1;
 	while(BUTTON_PRESSED);
 	_delay_ms(10);
 }

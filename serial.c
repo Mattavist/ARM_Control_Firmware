@@ -1,6 +1,8 @@
 #include "defs.h"
 #include <string.h>
 
+
+// Initializes USART0 for wired communication
 void wireInit() {
 	#define BAUD 115200
 	#include <util/setbaud.h>
@@ -15,20 +17,26 @@ void wireInit() {
 	#endif
 }
 
+
+// Sends a character over USART0
 void wireSend(char ch) {
 		while (!( UCSR0A & (1<<UDRE0)));  // wait while register is free
 		UDR0 = ch;
 }
 
+
+// Sends a string over USART0
 void wireSendString(char *str) {
 	while(*str)
 		wireSend(*str++);
 }
 
+
+// Initializes USART1 for radio communication
 void radioInit() {
-	//#undef BAUD
-	//#define BAUD 38400
-	//#include <util/setbaud.h>
+	#undef BAUD
+	#define BAUD 57600
+	#include <util/setbaud.h>
 	UBRR1H=UBRRH_VALUE;
 	UBRR1L=UBRRL_VALUE;  //set baud rate
 	UCSR1B = (1<<TXEN1)|(1<<RXEN1)|(1<<RXCIE1);  //enable receiver and transmitter
@@ -40,6 +48,8 @@ void radioInit() {
 	#endif
 }
 
+
+// Sends a character over USART0
 void radioSend(char ch) {
 		while (!( UCSR1A & (1<<UDRE1)));  // wait while register is free
 		UDR1 = ch;
@@ -50,6 +60,9 @@ void radioSendString(char *str) {
 		radioSend(*str++);
 }
 
+
+// Receives a string of characters over USART0 and checks against str
+// Returns 1 if strings match, -1 if they don't, 0 if time out
 int wireGetCmpString(volatile unsigned int *timer, char str[]) {
 	char robo[100] = "";
 	int counter = 0;

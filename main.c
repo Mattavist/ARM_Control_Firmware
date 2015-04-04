@@ -9,9 +9,9 @@
 #include <stdio.h>
 
 // Function Prototypes
-void getSensorData();
-void txData(char *, int);
-int rxData(char *, int);
+void sampleSensorData();
+void transmitSensorData(char *, int);
+int receiveSensorData(char *, int);
 void dataToTerminal();
 int basicRoboControl();
 int roboControl();
@@ -28,15 +28,15 @@ void sysInit() {
 	DDRD  = 0x80;   	// D3 as output
 	PORTD |= 0x80;  	// Turn on the power LED
 
-	rcvrFlag = 0;
+	rcvrTmr = 0;
 	configFlag = 0;
 	rxRadioFlag = 0;
 	rxWireFlag = 0;
 	startDataFlag = 0;
-	targetDevice = TERMINAL;
-	twentyFiveMS_Timer = INTS_PER_25MS;
-	secondTimer = INTS_PER_SECOND;
-	roboteqResponseTime = 0;
+	targetIsRoboteQ = TARGET;
+	twentyMS_Tmr = INTS_PER_20MS;
+	secondTmr = INTS_PER_SECOND;
+	roboteqResponseTmr = 0;
 	roboteqStatus = 0;
 	roboteqErrCnt = 0;
 
@@ -46,6 +46,7 @@ void sysInit() {
 	timerInit();
 	radioSendString("Starting\r\n");
 	sei();
+	PORTC |= POWER_LED;
 }
 
 
@@ -53,43 +54,25 @@ void sysInit() {
 // Initializes hardware
 // Runs main program loop for Transmitter or Receiver, chosen at compile
 int main() {
-	int counter = 0;
-	char buffer[100];
 	sysInit();
-
-	PORTC |= POWER_LED;
 
 	// TRANSMITTER MAIN PROGRAM LOOP
 	#ifdef TRANSMITTER 
 	while(1) {
 		// TODO: This happens every time through the loop, too much!
 		// Replace with timer trigger
-		getSensorData(); // get 6 adc values and stick them in the buffer
+		sampleSensorData(); // get 6 adc values and stick them in the buffer
 
 		// Ready command from receiver?
-		if (rcvrFlag == 1) { 
-			txData(data, NUM_ADC_CHANS + NUM_DIGITAL_CHANS);  // transmit the data buffer
-			rcvrFlag = 0;  // set the ready flag low
+		if (rcvrTmr == 1) { 
+			transmitSensorData(data, NUM_ADC_CHANS + NUM_DIGITAL_CHANS);  // transmit the data buffer
+			rcvrTmr = 0;  // set the ready flag low
 		}
 		
-		// received config command from terminal?
+		// received config command from terminal? Does nothing currently
 		if (configFlag == 1) {
-			// command valid?
-				// acknowledge the command
-				// command for me?
-					// execute the command
-				// command for receiver?
-					// transmit the command
-			// command invalid?
-				// transmit error message
 			configFlag = 0;  // set the config flag low
 		}
-
-		//if (BUTTON_PRESSED)
-		//	processButton();
-
-		// CALIBRATION?
-		// BATTERY LEVEL?
 	}
 	#endif
 
@@ -97,44 +80,54 @@ int main() {
 	#ifdef RECEIVER
 	
 	while(1) {
+		// Make sure RoboteQ is initialized and connected
 		if (roboteqErrCnt > ROBOTEQ_ERROR_LIMIT) {
 			PORTC &= ~TARGET_LED;
 			roboteqStatus = 0;
 		}
 
-		while(roboteqStatus == 0)
+		// Turn off the associate LED if timer expires
+		if (!radioAssocTmr)
+			PORTC &= ~RADIO_LED;
+
+		// Connect to and initialize the RoboteQ
+		while(roboteqStatus == 0 && targetIsRoboteQ)
 			roboteqInit();
 
-		if(!roboteqFlag) {
+
+		if(!roboteqTmr && !targetIsRoboteQ) {
+			if(dataValid) {
+				dataToTerminal();
+				dataValid = 0;
+			}
+			roboteqTmr = ROBOTEQ_DELAY;
+		}
+
+		// Communicate with RoboteQ regularly
+		if(!roboteqTmr && targetIsRoboteQ) {
 			if (dataValid) {
 				//if(!roboControl())
 				if(!basicRoboControl())
 					roboteqErrCnt++;
-				roboteqFlag = ROBOTEQ_DELAY;
 				dataValid = 0;
 			}
-			// If there's no new data to send ping the RoboteQ
-			// to feed the watchdog and confirm response
-			else
+			else  // Feed the watchdog
 				dataToRoboteq(PING);
+			roboteqTmr = ROBOTEQ_DELAY;
 		}
 
-		// Am I ready to receive data?
-		if (!rcvrFlag) {
-			if (targetDevice == TERMINAL) {
-				//wireSendString("Requesting data...\r\n");
+		// Ready to receive data?
+		if (!rcvrTmr) {
+			if (!targetIsRoboteQ) {
+				wireSendString("Requesting data...\r\n");
 			}
-			else {
-				//sprintf(buffer, "Requesting data #%d...\r\n", counter++);
-				wireSendString(buffer);
-			}
-			rcvrFlag = RCVR_DELAY;
 			radioSend(RCVR_READY);
+			rcvrTmr = RCVR_DELAY;
 		}
 
 		// Start byte from transmitter?
 		if (startDataFlag == 1) {
-			if (rxData(data, NUM_ADC_CHANS + NUM_DIGITAL_CHANS))
+			if (receiveSensorData(data, NUM_ADC_CHANS + NUM_DIGITAL_CHANS))
 				dataValid = 1;
 			else
 				dataValid = 0;
@@ -147,10 +140,6 @@ int main() {
 			// process the command
 			// allow roboteq to resume
 		}
-
-		// Turn off the associate LED if timer expires
-		if (!radioAssocTmr)
-			PORTC &= ~RADIO_LED;
 	}
 	#endif
 
@@ -158,10 +147,10 @@ int main() {
 }
 
 
-// GETSENSORDATA FUNCTION
+// sampleSensorData FUNCTION
 // Collects 3 ADC readings, 2 digital readings, and populates the buffer
 // Returns nothing
-void getSensorData() {
+void sampleSensorData() {
 	PORTA = 0xC1;  // Power to ADC channel 1
 	data[0] = getADC(1)/4;
 
@@ -177,11 +166,11 @@ void getSensorData() {
 }
 
 
-// TXDATA FUNCTION
+// transmitSensorData FUNCTION
 // Sends start byte, size unsigned chars, and a checksum of the added chars
 // Returns nothing
 // TODO: Switch to choose start byte
-void txData(char *buffer, int size) {
+void transmitSensorData(char *buffer, int size) {
 	unsigned char checksum = 0;
 
 	radioSend(START_BYTE);
@@ -194,23 +183,30 @@ void txData(char *buffer, int size) {
 }
 
 
-// RXDATA FUNCTION
+// receiveSensorData FUNCTION
 // Receives size chars and places them into a buffer
 // Compares the sum of the chars against the checksum
 // Returns 1 if checksum match, 0 otherwise
-int rxData(char *buffer, int size) {
+// Returns 0 if times out
+int receiveSensorData(char *buffer, int size) {
 	unsigned char checksum = 0;
 	rxRadioFlag = 0;
+	radioTmr = RADIO_TIMEOUT;
 
+	// Populate the buffer
 	for (int i = 0; i < size; i++) {
-		while(!rxRadioFlag);
+		while(!rxRadioFlag)
+			if(!radioTmr) return 0;
 		buffer[i] = radioReceived;
 		checksum += radioReceived;
 		rxRadioFlag = 0;
 	}
 
-	while(!rxRadioFlag);
+	// Validate against checksum
+	while(!rxRadioFlag)
+			if(!radioTmr) return 0;
 	rxRadioFlag = 0;
+	
 	if (checksum != radioReceived)
 		return 0;
 	else

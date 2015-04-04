@@ -5,10 +5,10 @@
 
 // GETROBOTEQCONFIRM FUNCTION
 int getRoboteqConfirm() {	
-	roboteqResponseTime = TARGET_ASSOC_LIMIT;
+	roboteqResponseTmr = TARGET_ASSOC_LIMIT;
 	rxWireFlag = 0;
 	while(!rxWireFlag) {
-		if (!roboteqResponseTime) {
+		if (!roboteqResponseTmr) {
 			radioSendString("Command not acknowledged!\r\n");
 			return 0;
 		}
@@ -58,15 +58,15 @@ int roboteqInit() {
 	int response;
 
 	PORTC &= ~TARGET_LED;
-	roboteqFlag = 0;
+	roboteqTmr = 0;
 
 	
 	radioSendString("Querying RoboteQ Firmware... ");
 
 	rxWireFlag = 0;
 	wireSendString("?fid_");
-	roboteqResponseTime = TARGET_ASSOC_LIMIT;
-	if(wireGetCmpString(&roboteqResponseTime, ROBOTEQ_MODEL) != 1)
+	roboteqResponseTmr = TARGET_ASSOC_LIMIT;
+	if(wireGetCmpString(&roboteqResponseTmr, ROBOTEQ_MODEL) != 1)
 		return 0;
 
 	if (!dataToRoboteq("^ECHOF 1_")) return 0;
@@ -74,7 +74,7 @@ int roboteqInit() {
 	if (!setRoboPosition(1, 50)) return 0;
 	roboteqStatus = 1;
 	roboteqErrCnt = 0;
-	roboteqFlag = ROBOTEQ_DELAY;
+	roboteqTmr = ROBOTEQ_DELAY;
 	PORTC |= TARGET_LED;
 
 	return 1;
