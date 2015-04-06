@@ -3,13 +3,14 @@
 #include <avr/io.h>
 
 // Module Definition
-//#define TRANSMITTER
-#define RECEIVER
+#define TRANSMITTER
+//#define RECEIVER
 #define TARGET 0
 
 // Flags and comands
 #define DELAY 10
-#define BUTTON_PRESSED !(PINC & 0x10)  // Change to specific button
+#define BUTTON1_PRESSED !(PINC & 0x10)  // Change to specific button
+#define BUTTON2_PRESSED !(PINC & 0x20)  // Change to specific button
 #define POWER_LED 0x01  // Power LED at C0
 #define RADIO_LED 0x02  // Radio LED at C1
 #define TARGET_LED 0x04  // Target device LED at C2
@@ -33,6 +34,9 @@
 #define RADIO_TIMEOUT 3  // t*20ms communication timer
 #define ROBOTEQ_DELAY 4  // t*20ms delay for roboteq communication
 #define PING "^ECHOF 1_"  // Empty command for RoboteQ
+#define WIRE_SPEED 115200
+#define RADIO_SPEED 57600
+#define BOUNCE_TIME 1
 
 // Shared Variables
 #ifdef MAIN
@@ -53,6 +57,10 @@
 	volatile unsigned int roboteqStatus;
 	volatile unsigned int roboteqErrCnt;
 	volatile unsigned int radioTmr;
+	volatile unsigned int button1Bouncing;
+	volatile unsigned int button2Bouncing;
+	volatile unsigned int button1State;
+	volatile unsigned int button2State;
 	unsigned char data[NUM_ADC_CHANS + NUM_DIGITAL_CHANS];  // Buffer with sensor data
 	unsigned char dataMin[NUM_ADC_CHANS];
 	unsigned char dataMax[NUM_ADC_CHANS];
@@ -76,6 +84,10 @@
 	extern volatile unsigned int roboteqStatus;
 	extern volatile unsigned int roboteqErrCnt;
 	extern volatile unsigned int radioTmr;
+	extern volatile unsigned int button1Bouncing;
+	extern volatile unsigned int button2Bouncing;
+	extern volatile unsigned int button1State;
+	extern volatile unsigned int button2State;
 	extern unsigned char data[NUM_ADC_CHANS + NUM_DIGITAL_CHANS];  // Buffer with sensor data
 	extern unsigned char dataMin[NUM_ADC_CHANS];
 	extern unsigned char dataMax[NUM_ADC_CHANS];

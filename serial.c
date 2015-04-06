@@ -4,7 +4,7 @@
 
 // Initializes USART0 for wired communication
 void wireInit() {
-	#define BAUD 115200
+	#define BAUD WIRE_SPEED
 	#include <util/setbaud.h>
 	UBRR0H=UBRRH_VALUE;
 	UBRR0L=UBRRL_VALUE;  //set baud rate
@@ -15,6 +15,7 @@ void wireInit() {
 	#else
 		UCSR0A &= ~(1 << U2X0);
 	#endif
+	#undef BAUD
 }
 
 
@@ -34,8 +35,7 @@ void wireSendString(char *str) {
 
 // Initializes USART1 for radio communication
 void radioInit() {
-	#undef BAUD
-	#define BAUD 57600
+	#define BAUD RADIO_SPEED
 	#include <util/setbaud.h>
 	UBRR1H=UBRRH_VALUE;
 	UBRR1L=UBRRL_VALUE;  //set baud rate
@@ -46,6 +46,7 @@ void radioInit() {
 	#else
 		UCSR1A &= ~(1 << U2X1);
 	#endif
+	#undef BAUD
 }
 
 

@@ -15,6 +15,7 @@ int receiveSensorData(char *, int);
 void dataToTerminal();
 int basicRoboControl();
 int roboControl();
+void processButtons();
 
 // SYSINIT FUNCTION
 // Sets port data directions and initializes systems
@@ -39,12 +40,14 @@ void sysInit() {
 	roboteqResponseTmr = 0;
 	roboteqStatus = 0;
 	roboteqErrCnt = 0;
+	button1Bouncing = 0;
+	button2Bouncing = 0;
 
 	adcInit();
 	wireInit();
 	radioInit();
 	timerInit();
-	radioSendString("Starting\r\n");
+	wireSendString("Starting\r\n");
 	sei();
 	PORTC |= POWER_LED;
 }
@@ -73,6 +76,8 @@ int main() {
 		if (configFlag == 1) {
 			configFlag = 0;  // set the config flag low
 		}
+
+		processButtons();
 	}
 	#endif
 
@@ -264,6 +269,47 @@ int roboControl() {
 		return 0;
 
 	return 1;
+}
+
+void processButtons() {
+	if ((BUTTON1_PRESSED) && (button1State == 0)) {// && !button1Bouncing) {  // Handle first button down
+		if(!button1Bouncing) {
+			button1Bouncing = BOUNCE_TIME;
+			button1State = 1;
+		}
+		// set this button's flag
+	}
+	else if (!BUTTON1_PRESSED && (button1State == 2)) {
+		if(!button1Bouncing) {
+			button1Bouncing = BOUNCE_TIME;
+			button1State = 0;
+		}
+	}
+
+	if (button1State == 1) {
+		//do calibration
+		button1State = 2;
+	}
+
+
+	if ((BUTTON2_PRESSED) && (button2State == 0)) {// && !button1Bouncing) {  // Handle first button down
+		if(!button2Bouncing) {
+			button2Bouncing = BOUNCE_TIME;
+			button2State = 1;
+		}
+		// set this button's flag
+	}
+	else if (!BUTTON2_PRESSED && (button2State == 2)) {
+		if(!button2Bouncing) {
+			button2Bouncing = BOUNCE_TIME;
+			button2State = 0;
+		}
+	}
+
+	if (button2State == 1) {
+		//reset?
+		button2State = 2;
+	}
 }
 
 

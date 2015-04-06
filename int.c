@@ -16,6 +16,12 @@ ISR(TIMER0_OVF_vect) {
 				radioTmr--;
 		#endif
 
+		if(button1Bouncing)
+			button1Bouncing--;
+
+		if(button2Bouncing)
+			button2Bouncing--;
+
 		secondTmr--;
 		if(!secondTmr) {  // Fires every second
 			secondTmr = INTS_PER_SECOND;
