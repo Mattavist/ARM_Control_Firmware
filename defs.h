@@ -3,9 +3,9 @@
 #include <avr/io.h>
 
 // Module Definition
-#define TRANSMITTER
-//#define RECEIVER
-#define TARGET 0
+//#define TRANSMITTER
+#define RECEIVER
+#define TARGET 1
 
 // Flags and comands
 #define DELAY 10
@@ -14,6 +14,7 @@
 #define POWER_LED 0x01  // Power LED at C0
 #define RADIO_LED 0x02  // Radio LED at C1
 #define TARGET_LED 0x04  // Target device LED at C2
+#define MISC_LED 0x08;
 #define	START_BYTE 0xDB  // Sensor Data start command
 #define RCVR_READY 0x4D  // Receiver ready command
 #define CONFIG_CMD 0xB3  // Command for receiver to enter config mode
@@ -28,7 +29,8 @@
 #define ROBOTEQ_CONFIRM '+'  // Confirm character from RoboteQ
 #define ROBOTEQ 1  // RoboteQ identifier
 #define TERMINAL 2  // Terminal identifier
-#define ROBOTEQ_MODEL "FID=Roboteq v1.3 RCB290 10/10/2013"  // Motor controller firmware version
+//#define ROBOTEQ_MODEL "FID=Roboteq v1.3 RCB290 10/10/2013"  // RoboteQ at home
+#define ROBOTEQ_MODEL "FID=Roboteq v1.4a SDC2XXX 11/21/2014"  // Richard's RoboteQ
 #define ROBOTEQ_ERROR_LIMIT 10  // Number of errors before reinitialization
 #define RCVR_DELAY 4  // t*20ms delay for sensor data requests
 #define RADIO_TIMEOUT 3  // t*20ms communication timer

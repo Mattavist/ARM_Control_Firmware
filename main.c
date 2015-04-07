@@ -16,6 +16,7 @@ void dataToTerminal();
 int basicRoboControl();
 int roboControl();
 void processButtons();
+void initSensors();
 
 // SYSINIT FUNCTION
 // Sets port data directions and initializes systems
@@ -226,15 +227,16 @@ void dataToTerminal() {
 	char buf[80];
 
 	wireSendString("Got good data!\r\n");
-	data[0] -= 60;
-	data[0] = data[0]*100/91;			
+	data[0] -= dataMin[0];
+	data[0] = data[0]*100/(dataMax[0] - dataMin[0]);			
 	sprintf(buf, "ADC0    = %d%c\r\n", data[0], '%');
 	wireSendString(buf);
-	data[1] -= 60;
-	data[1] = data[1]*100/91;
+	data[1] -= dataMin[1];
+	data[1] = data[1]*100/(dataMax[1]-dataMin[1]);
 	sprintf(buf, "ADC1    = %d%c\r\n", data[1], '%');
 	wireSendString(buf);
-	data[2] = data[2]*100/255;
+	data[2] -= dataMin[2];
+	data[2] = data[2]*100/(dataMax[2]-dataMin[2]);
 	sprintf(buf, "ADC2    = %d%c\r\n", data[2], '%');
 	wireSendString(buf);
 	sprintf(buf, "Switch0 = %s\r\n", (data[3])?"Open":"Closed");
@@ -310,6 +312,41 @@ void processButtons() {
 		//reset?
 		button2State = 2;
 	}
+}
+
+// Function will run for cal_time seconds constantly grabbing
+// maximum and minimum values on all 3 sensors
+void calibration()
+{
+	PORTC |= MISC_LED;	// Turn on LED, Start calibration
+	unsigned int temp1, temp2, temp3;// Initial values and variables
+	calTmr = 10;		// Number of seconds calibration will run
+	while (calTmr)
+	{
+		temp1 = getADC(1)/4;
+		temp2 = getADC(3)/4;
+		temp3 = getADC(5)/4;
+		if (temp1 > dataMax[0])	dataMax[0] = temp1;
+		else if (temp1 < dataMin[0])	dataMin[0] = temp1;
+		if (temp2 > dataMax[1])	dataMax[1] = temp2;
+		else if (temp2 < dataMin[1])	dataMin[1] = temp2;
+		if (temp3 > dataMax[2])	dataMax[2] = temp3;
+		else if (temp3 < dataMin[2])	dataMin[2] = temp3;
+	}
+
+	PORTC &= ~MISC_LED;	// Turn on LED, End calibration
+}
+
+
+// Hardcoded sensor limits
+// Change to reading from EEPROM if it has valid data
+void initSensors() {
+	dataMin[0] = 60;
+	dataMax[0] = 151;
+	dataMin[1] = 60;
+	dataMax[1] = 151;
+	dataMin[2] = 0;
+	dataMax[2] = 255;
 }
 
 
