@@ -5,7 +5,7 @@
 // Module Definition
 //#define TRANSMITTER
 #define RECEIVER
-#define TARGET 1
+#define TARGET 0
 
 // Flags and comands
 #define DELAY 10
@@ -39,6 +39,7 @@
 #define WIRE_SPEED 115200
 #define RADIO_SPEED 57600
 #define BOUNCE_TIME 1
+#define CAL_TIME 10
 
 // Shared Variables
 #ifdef MAIN
@@ -46,6 +47,7 @@
 	volatile unsigned char rxRadioFlag;  // Data ready in wireless USART RX buffer
 	volatile unsigned char radioReceived;  // Data from USART RX Radio
 	volatile unsigned char wireReceived;  // Data from USART RX Wire
+	volatile unsigned char rcvrReadyFlag;
 	volatile unsigned char rcvrTmr;  // Receiver is ready for sensor data
 	volatile unsigned char configFlag;  // Received command to enter config mode
 	volatile unsigned char startDataFlag;  // About to receive sensor data
@@ -73,6 +75,7 @@
 	extern volatile unsigned char rxRadioFlag;  // Data ready in wireless USART RX buffer
 	extern volatile unsigned char radioReceived;  // Data from USART RX Radio
 	extern volatile unsigned char wireReceived;  // Data from USART RX Wire
+	extern volatile unsigned char rcvrReadyFlag;
 	extern volatile unsigned char rcvrTmr;  // Receiver is ready for sensor data
 	extern volatile unsigned char configFlag;  // Received command to enter config mode
 	extern volatile unsigned char startDataFlag;  // About to receive sensor data

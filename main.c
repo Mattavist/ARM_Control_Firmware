@@ -1,3 +1,11 @@
+/******************************************************************************
+main.c
+Written by: Matt Kelly, John Sabino, Jon Wang
+
+Contains main program loops for ARM Motion Tracker Project
+Code for both receiver and transmitter modules. Switch between the two
+	in defs.h
+******************************************************************************/
 #define MAIN
 #include "defs.h"
 #include "adc.h"
@@ -11,10 +19,10 @@
 // Function Prototypes
 void sampleSensorData();
 void transmitSensorData(char *, int);
-int receiveSensorData(char *, int);
+int  receiveSensorData(char *, int);
 void dataToTerminal();
-int basicRoboControl();
-int roboControl();
+int  basicRoboControl();
+int  roboControl();
 void processButtons();
 void initSensors();
 
@@ -35,6 +43,7 @@ void sysInit() {
 	rxRadioFlag = 0;
 	rxWireFlag = 0;
 	startDataFlag = 0;
+	rcvrReadyFlag = 0;
 	targetIsRoboteQ = TARGET;
 	twentyMS_Tmr = INTS_PER_20MS;
 	secondTmr = INTS_PER_SECOND;
@@ -63,19 +72,18 @@ int main() {
 	// TRANSMITTER MAIN PROGRAM LOOP
 	#ifdef TRANSMITTER 
 	while(1) {
+		// Turn off the associate LED if timer expires
+		if (!radioAssocTmr)
+			PORTC &= ~RADIO_LED;
+
 		// TODO: This happens every time through the loop, too much!
 		// Replace with timer trigger
 		sampleSensorData(); // get 6 adc values and stick them in the buffer
 
 		// Ready command from receiver?
-		if (rcvrTmr == 1) { 
+		if (rcvrReadyFlag == 1) { 
 			transmitSensorData(data, NUM_ADC_CHANS + NUM_DIGITAL_CHANS);  // transmit the data buffer
-			rcvrTmr = 0;  // set the ready flag low
-		}
-		
-		// received config command from terminal? Does nothing currently
-		if (configFlag == 1) {
-			configFlag = 0;  // set the config flag low
+			rcvrReadyFlag = 0;  // set the ready flag low
 		}
 
 		processButtons();
@@ -100,10 +108,10 @@ int main() {
 		while(roboteqStatus == 0 && targetIsRoboteQ)
 			roboteqInit();
 
-
 		if(!roboteqTmr && !targetIsRoboteQ) {
 			if(dataValid) {
-				dataToTerminal();
+				//dataToTerminal();
+				basicRoboControl();
 				dataValid = 0;
 			}
 			roboteqTmr = ROBOTEQ_DELAY;
@@ -112,6 +120,7 @@ int main() {
 		// Communicate with RoboteQ regularly
 		if(!roboteqTmr && targetIsRoboteQ) {
 			if (dataValid) {
+				//TODO CHANGE THIS TO ROBOCONTROL
 				//if(!roboControl())
 				if(!basicRoboControl())
 					roboteqErrCnt++;
@@ -139,13 +148,6 @@ int main() {
 				dataValid = 0;
 			startDataFlag = 0;
 		}
-
-		// command byte from transmitter?
-		if (configFlag == 1) {
-			// command roboteq to stop
-			// process the command
-			// allow roboteq to resume
-		}
 	}
 	#endif
 
@@ -153,7 +155,7 @@ int main() {
 }
 
 
-// sampleSensorData FUNCTION
+// SAMPLESENSORDATA FUNCTION
 // Collects 3 ADC readings, 2 digital readings, and populates the buffer
 // Returns nothing
 void sampleSensorData() {
@@ -172,10 +174,9 @@ void sampleSensorData() {
 }
 
 
-// transmitSensorData FUNCTION
+// TRANSMITSENSORDATA FUNCTION
 // Sends start byte, size unsigned chars, and a checksum of the added chars
 // Returns nothing
-// TODO: Switch to choose start byte
 void transmitSensorData(char *buffer, int size) {
 	unsigned char checksum = 0;
 
@@ -189,7 +190,7 @@ void transmitSensorData(char *buffer, int size) {
 }
 
 
-// receiveSensorData FUNCTION
+// RECEIVESENSORDATA FUNCTION
 // Receives size chars and places them into a buffer
 // Compares the sum of the chars against the checksum
 // Returns 1 if checksum match, 0 otherwise
@@ -222,7 +223,6 @@ int receiveSensorData(char *buffer, int size) {
 
 // DATATOTERMINAL FUNCTION
 // Prints the sensor data to terminal in a nice format
-// Returns nothing
 void dataToTerminal() {
 	char buf[80];
 
@@ -246,35 +246,42 @@ void dataToTerminal() {
 }
 
 
+// BASICROBOCONTROL FUNCTION
+// Generates terminal strings for sensor data
 int basicRoboControl() {
-	setRoboPower(1, 20);
-	setRoboPosition(1, 50);
-	//setRoboPower(2, 20);
-	//setRoboPosition(2, 75);
-	setRoboPower(1, 20);
-	setRoboPosition(1, 25);
+	char buf[100];
+
+	// Funky math here is required for proper calculation
+	sprintf(buf, "Chan2: %d\r\n", (((100*data[2])/255)*20)-1000);
+	wireSendString(buf);
 	return 1;
 }
 
+
+// ROBOCONTROL FUNCTION
+// Generates and sends commands to RoboteQ based on sensor data
 int roboControl() {
 	if(!setRoboPower(1, 20))
 		return 0;
-	if(!setRoboPosition(1, data[0]))
+	if(!setRoboPosition(1, (data[0]*20)-1000))
 		return 0;
 	if(!setRoboPower(2, 20))
 		return 0;
-	if(!setRoboPosition(2, data[1]))
+	if(!setRoboPosition(2, (data[1]*20)-1000))
 		return 0;
 	if(!setRoboPower(3, 20))
 		return 0;
-	if(!setRoboPosition(3, data[2]))
+	if(!setRoboPosition(3, (data[2]*20)-1000))
 		return 0;
 
 	return 1;
 }
 
+
+// PROCESSBUTTONS FUNCTION
+// State machine to process and debounce button presses
 void processButtons() {
-	if ((BUTTON1_PRESSED) && (button1State == 0)) {// && !button1Bouncing) {  // Handle first button down
+	if ((BUTTON1_PRESSED) && (button1State == 0)) {
 		if(!button1Bouncing) {
 			button1Bouncing = BOUNCE_TIME;
 			button1State = 1;
@@ -294,7 +301,7 @@ void processButtons() {
 	}
 
 
-	if ((BUTTON2_PRESSED) && (button2State == 0)) {// && !button1Bouncing) {  // Handle first button down
+	if ((BUTTON2_PRESSED) && (button2State == 0)) {
 		if(!button2Bouncing) {
 			button2Bouncing = BOUNCE_TIME;
 			button2State = 1;
@@ -314,13 +321,15 @@ void processButtons() {
 	}
 }
 
-// Function will run for cal_time seconds constantly grabbing
-// maximum and minimum values on all 3 sensors
+
+// CALIBRATION FUNCTION
+// Runs for CAL_TIME seconds constantly grabbing
+// maximum and minimum values on all ADC sensor channels
 void calibration()
 {
 	PORTC |= MISC_LED;	// Turn on LED, Start calibration
 	unsigned int temp1, temp2, temp3;// Initial values and variables
-	calTmr = 10;		// Number of seconds calibration will run
+	calTmr = CAL_TIME;		// Number of seconds calibration will run
 	while (calTmr)
 	{
 		temp1 = getADC(1)/4;
@@ -334,12 +343,13 @@ void calibration()
 		else if (temp3 < dataMin[2])	dataMin[2] = temp3;
 	}
 
-	PORTC &= ~MISC_LED;	// Turn on LED, End calibration
+	PORTC &= ~MISC_LED;	// Turn off LED, End calibration
 }
 
 
-// Hardcoded sensor limits
-// Change to reading from EEPROM if it has valid data
+// INITSENSORS FUNCTION
+// Currently only hard coded sensor limits
+// TODO: Change to reading from EEPROM if it has valid data
 void initSensors() {
 	dataMin[0] = 60;
 	dataMax[0] = 151;
@@ -348,5 +358,3 @@ void initSensors() {
 	dataMin[2] = 0;
 	dataMax[2] = 255;
 }
-
-

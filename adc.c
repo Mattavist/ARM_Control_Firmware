@@ -1,11 +1,21 @@
+/******************************************************************************
+adc.c
+Written by: Matt Kelly, John Sabino, Jon Wang
+
+Contains functions to initialize and collect ADC readings
+******************************************************************************/
 #include "defs.h"
 
+// ADCINIT FUNCTION
+// Enable ADC and prescale clock to 125kHz for 8mHz clock
 void adcInit() {
-	// Enable ADC and prescale clock to 125kHz for 8mHz clock
 	ADCSRA  = (1<<ADEN) | (1<<ADPS2) | (1<<ADPS1);
 	ADMUX = (1 << REFS0); // Disconnect AREF, use AVCC as reference
 }
 
+
+// GETADC FUNCTION
+// Returns one ADC reading from desired channel
 int getADC(int chan) {
 	ADMUX = (1 << REFS0) | chan;	// Select channel for ADC reading
 	ADCSRA  |= (1<<ADSC);  // Start conversion
@@ -14,6 +24,8 @@ int getADC(int chan) {
 	return ADCW;	// Store ADC result
 }
 
+
+// AVGADC FUNCTION
 // Samples chan for NUM_READINGS ADC values and averages them
 int avgADC(int chan) {
 	int i, value = 0;

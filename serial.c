@@ -1,7 +1,13 @@
+/******************************************************************************
+serial.c
+Written by: Matt Kelly, John Sabino, Jon Wang
+
+Contains code for initialization and serial communication over USART0 and
+	USART1 (on ATmega164P). Speeds defined in defs.h.
+******************************************************************************/
 #include "defs.h"
-#include <string.h>
 
-
+// WIREINIT FUNCTION
 // Initializes USART0 for wired communication
 void wireInit() {
 	#define BAUD WIRE_SPEED
@@ -19,6 +25,7 @@ void wireInit() {
 }
 
 
+// WIRESEND FUNCTION
 // Sends a character over USART0
 void wireSend(char ch) {
 		while (!( UCSR0A & (1<<UDRE0)));  // wait while register is free
@@ -26,6 +33,7 @@ void wireSend(char ch) {
 }
 
 
+// WIRESENDSTRING FUNCTION
 // Sends a string over USART0
 void wireSendString(char *str) {
 	while(*str)
@@ -33,6 +41,7 @@ void wireSendString(char *str) {
 }
 
 
+// RADIOINIT FUNCTION
 // Initializes USART1 for radio communication
 void radioInit() {
 	#define BAUD RADIO_SPEED
@@ -50,48 +59,21 @@ void radioInit() {
 }
 
 
+// RADIOSEND FUNCTION
 // Sends a character over USART0
 void radioSend(char ch) {
 		while (!( UCSR1A & (1<<UDRE1)));  // wait while register is free
 		UDR1 = ch;
 }
 
+
+// RADIOSENDSTRINGFUNCTION
+// Sends a string over USART1
 void radioSendString(char *str) {
 	while(*str)
 		radioSend(*str++);
 }
 
 
-// Receives a string of characters over USART0 and checks against str
-// Returns 1 if strings match, -1 if they don't, 0 if time out
-int wireGetCmpString(volatile unsigned int *timer, char str[]) {
-	char robo[100] = "";
-	int counter = 0;
 
-	while (*timer) {
-		if (rxWireFlag) {
-			if (wireReceived == '\r') {
-				robo[counter] = 0x00;
-				rxWireFlag = 0;
-				if(!strcmp(robo, str)) {
-					rxWireFlag = 0;
-					radioSendString(robo);
-					radioSendString("\r\n");
-					return 1;
-				}
-				else {
-					rxWireFlag = 0;
-					radioSendString(robo);
-					return -1;
-				}
-			}
-			else {
-				rxWireFlag = 0;
-				robo[counter++] = wireReceived;
-			}
-		}
-	}
-	rxWireFlag = 0;
-	return 0;
-}
 
