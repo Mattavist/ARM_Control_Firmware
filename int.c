@@ -16,7 +16,7 @@ ISR(TIMER0_OVF_vect) {
 
 		if(roboteqTmr)
 			roboteqTmr--;
-		
+
 		if (sensorTmr)
 			sensorTmr--;
 
@@ -32,9 +32,6 @@ ISR(TIMER0_OVF_vect) {
 		secondTmr--;
 		if(!secondTmr) {  // Fires every second
 			secondTmr = INTS_PER_SECOND;
-
-			if(calTmr)
-				calTmr--;
 
 			if(roboteqResponseTmr)
 				roboteqResponseTmr--;

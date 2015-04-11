@@ -25,6 +25,7 @@ int  basicRoboControl();
 int  roboControl();
 void processButtons();
 void initSensors();
+void calibration();
 
 // SYSINIT FUNCTION
 // Sets port data directions and initializes systems
@@ -43,6 +44,8 @@ void sysInit() {
 	configFlag = 0;
 	rxRadioFlag = 0;
 	rxWireFlag = 0;
+	calFlag = 0;
+	resetFlag = 0;
 	startDataFlag = 0;
 	rcvrReadyFlag = 0;
 	targetIsRoboteQ = TARGET;
@@ -78,90 +81,95 @@ int main() {
 		wireSendString("Hello\r\n");
 		wireSendString("Hello\r\n");
 
-	while(1) {
-		// Turn off the associate LED if timer expires
-		if (!radioAssocTmr)
-			PORTC &= ~RADIO_LED;
+		while(1) {
+			// Turn off the associate LED if timer expires
+			if (!radioAssocTmr)
+				PORTC &= ~RADIO_LED;
 
-		// TODO: This happens every time through the loop, too much!
-		// Replace with timer trigger
-		if (!sensorTmr) {
-			//wireSendString("Sampling...\r\n");
-			sampleSensorData(); // get 6 adc values and stick them in the buffer
-			sensorTmr = SENSOR_DELAY;
+			// TODO: This happens every time through the loop, too much!
+			// Replace with timer trigger
+			if (!sensorTmr) {
+				//wireSendString("Sampling...\r\n");
+				sampleSensorData(); // get 6 adc values and stick them in the buffer
+				sensorTmr = SENSOR_DELAY;
+			}
+
+			// Ready command from receiver?
+			if (rcvrReadyFlag == 1) { 
+				transmitSensorData(data, NUM_ADC_CHANS + NUM_DIGITAL_CHANS);  // transmit the data buffer
+				rcvrReadyFlag = 0;  // set the ready flag low
+			}
+
+			processButtons();
+			if(calFlag)
+				calibration();
+
+			if(resetFlag)
+				sysInit();
 		}
-
-		// Ready command from receiver?
-		if (rcvrReadyFlag == 1) { 
-			transmitSensorData(data, NUM_ADC_CHANS + NUM_DIGITAL_CHANS);  // transmit the data buffer
-			rcvrReadyFlag = 0;  // set the ready flag low
-		}
-
-		processButtons();
-	}
-	#endif
+		#endif
 
 	// RECEIVER MAIN PROGRAM LOOP
 	#ifdef RECEIVER
 	
-	while(1) {
-		// Make sure RoboteQ is initialized and connected
-		if (roboteqErrCnt > ROBOTEQ_ERROR_LIMIT) {
-			PORTC &= ~TARGET_LED;
-			roboteqStatus = 0;
-		}
-
-		// Turn off the associate LED if timer expires
-		if (!radioAssocTmr)
-			PORTC &= ~RADIO_LED;
-
-		// Connect to and initialize the RoboteQ
-		while(roboteqStatus == 0 && targetIsRoboteQ)
-			roboteqInit();
-
-
-		if(!roboteqTmr && !targetIsRoboteQ) {
-			if(dataValid) {
-				//dataToTerminal();
-				basicRoboControl();
-				dataValid = 0;
+		while(1) {
+			// Make sure RoboteQ is initialized and connected
+			if (roboteqErrCnt > ROBOTEQ_ERROR_LIMIT) {
+				PORTC &= ~TARGET_LED;
+				roboteqStatus = 0;
 			}
-			roboteqTmr = ROBOTEQ_DELAY;
-		}
 
-		// Communicate with RoboteQ regularly
-		if(!roboteqTmr && targetIsRoboteQ) {
-			if (dataValid) {
-				//TODO CHANGE THIS TO ROBOCONTROL
-				//if(!roboControl())
-				if(!basicRoboControl())
-					roboteqErrCnt++;
-				dataValid = 0;
+			// Turn off the associate LED if timer expires
+			if (!radioAssocTmr)
+				PORTC &= ~RADIO_LED;
+
+			// Connect to and initialize the RoboteQ
+			while(roboteqStatus == 0 && targetIsRoboteQ)
+				roboteqInit();
+
+
+			if(!roboteqTmr && !targetIsRoboteQ) {
+				if(dataValid) {
+					//dataToTerminal();
+					basicRoboControl();
+					dataValid = 0;
+				}
+				roboteqTmr = ROBOTEQ_DELAY;
 			}
-			else  // Feed the watchdog
-				if (DEBUG) radioSendString("Pinging RoboteQ\r\n");
-				dataToRoboteq(PING);
-			roboteqTmr = ROBOTEQ_DELAY;
-		}
 
-		// Ready to receive data?
-		if (!rcvrTmr) {
-			if (!targetIsRoboteQ) {
-				//wireSendString("Requesting data...\r\n");
+			// Communicate with RoboteQ regularly
+			if(!roboteqTmr && targetIsRoboteQ) {
+				if (dataValid) {
+					//TODO CHANGE THIS TO ROBOCONTROL
+					//if(!roboControl())
+					if(!basicRoboControl())
+						roboteqErrCnt++;
+					dataValid = 0;
+				}
+				else  // Feed the watchdog
+					if (DEBUG) radioSendString("Pinging RoboteQ\r\n");
+					dataToRoboteq(PING);
+				roboteqTmr = ROBOTEQ_DELAY;
 			}
-			radioSend(RCVR_READY);
-			rcvrTmr = RCVR_DELAY;
-		}
 
-		// Start byte from transmitter?
-		if (startDataFlag == 1) {
-			if (receiveSensorData(data, NUM_ADC_CHANS + NUM_DIGITAL_CHANS))
-				dataValid = 1;
-			else
-				dataValid = 0;
-			startDataFlag = 0;
+			// Ready to receive data?
+			if (!rcvrTmr) {
+				if (!targetIsRoboteQ) {
+					//wireSendString("Requesting data...\r\n");
+				}
+				radioSend(RCVR_READY);
+				rcvrTmr = RCVR_DELAY;
+			}
+
+			// Start byte from transmitter?
+			if (startDataFlag == 1) {
+				if (receiveSensorData(data, NUM_ADC_CHANS + NUM_DIGITAL_CHANS))
+					dataValid = 1;
+				else
+					dataValid = 0;
+				startDataFlag = 0;
+			}
 		}
-	}
 	#endif
 
 	return 0;
@@ -254,7 +262,14 @@ int receiveSensorData(char *buffer, int size) {
 void dataToTerminal() {
 	char buf[80];
 
-	wireSendString("Got good data!\r\n");
+	sprintf(buf, "Min0: %d, Max0: %d\r\n", dataMin[0], dataMax[0]);
+	wireSendString(buf);
+	sprintf(buf, "Min1: %d, Max1: %d\r\n", dataMin[1], dataMax[1]);
+	wireSendString(buf);
+	sprintf(buf, "Min2: %d, Max2: %d\r\n\r\n", dataMin[2], dataMax[2]);
+	wireSendString(buf);
+
+	/*wireSendString("Got good data!\r\n");
 	sprintf(buf, "ADC0    = %d%c\r\n", data[0], '%');
 	wireSendString(buf);
 	sprintf(buf, "ADC1    = %d%c\r\n", data[1], '%');
@@ -264,7 +279,7 @@ void dataToTerminal() {
 	sprintf(buf, "Switch0 = %s\r\n", (data[3])?"Open":"Closed");
 	wireSendString(buf);
 	sprintf(buf, "Switch1 = %s\r\n\n", (data[4])?"Open":"Closed");
-	wireSendString(buf);
+	wireSendString(buf);*/
 }
 
 
@@ -306,9 +321,9 @@ void processButtons() {
 	if ((BUTTON1_PRESSED) && (button1State == 0)) {
 		if(!button1Bouncing) {
 			button1Bouncing = BOUNCE_TIME;
+			calFlag = !calFlag;
 			button1State = 1;
 		}
-		// set this button's flag
 	}
 	else if (!BUTTON1_PRESSED && (button1State == 2)) {
 		if(!button1Bouncing) {
@@ -318,7 +333,7 @@ void processButtons() {
 	}
 
 	if (button1State == 1) {
-		if (DEBUG) wireSendString("Button pressed\r\n");
+		if (DEBUG) wireSendString("Calibration Button pressed\r\n");
 		button1State = 2;
 	}
 
@@ -326,9 +341,9 @@ void processButtons() {
 	if ((BUTTON2_PRESSED) && (button2State == 0)) {
 		if(!button2Bouncing) {
 			button2Bouncing = BOUNCE_TIME;
+			resetFlag = 1;
 			button2State = 1;
 		}
-		// set this button's flag
 	}
 	else if (!BUTTON2_PRESSED && (button2State == 2)) {
 		if(!button2Bouncing) {
@@ -338,7 +353,7 @@ void processButtons() {
 	}
 
 	if (button2State == 1) {
-		//reset?
+		if (DEBUG) wireSendString("Reset Button pressed\r\n");
 		button2State = 2;
 	}
 }
@@ -347,24 +362,31 @@ void processButtons() {
 // CALIBRATION FUNCTION
 // Runs for CAL_TIME seconds constantly grabbing
 // maximum and minimum values on all ADC sensor channels
-void calibration()
-{
+void calibration() {
+	unsigned char temp[3];// Initial values and variables
 	PORTC |= MISC_LED;	// Turn on LED, Start calibration
-	unsigned int temp1, temp2, temp3;// Initial values and variables
-	calTmr = CAL_TIME;		// Number of seconds calibration will run
-	while (calTmr)
-	{
-		temp1 = getADC(1)/4;
-		temp2 = getADC(3)/4;
-		temp3 = getADC(5)/4;
-		if (temp1 > dataMax[0])	dataMax[0] = temp1;
-		else if (temp1 < dataMin[0])	dataMin[0] = temp1;
-		if (temp2 > dataMax[1])	dataMax[1] = temp2;
-		else if (temp2 < dataMin[1])	dataMin[1] = temp2;
-		if (temp3 > dataMax[2])	dataMax[2] = temp3;
-		else if (temp3 < dataMin[2])	dataMin[2] = temp3;
+	PORTA = 0xD5;  // Turn on power to all ADC channels
+
+	dataMin[0] = 255;
+	dataMax[0] = 0;
+	dataMin[1] = 255;
+	dataMax[1] = 0;
+	dataMin[2] = 255;
+	dataMax[2] = 0;
+
+	//calTmr = CAL_TIME;		// Number of seconds calibration will run
+	while (calFlag) {
+		for(int i = 0; i < NUM_ADC_CHANS; i++) {
+			temp[i] = avgADC(i*2 + 1)/4;
+			if (temp[i] > dataMax[i])
+				dataMax[i] = temp[i];
+			else if (temp[i] < dataMin[i])
+				dataMin[i] = temp[i];
+		}
+		processButtons();
 	}
 
+	PORTA = 0xC0;
 	PORTC &= ~MISC_LED;	// Turn off LED, End calibration
 }
 

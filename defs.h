@@ -56,7 +56,8 @@
 	volatile unsigned char roboteqTmr;
 	volatile unsigned int twentyMS_Tmr;
 	volatile unsigned int secondTmr;
-	volatile unsigned int calTmr;
+	volatile unsigned int calFlag;
+	volatile unsigned int resetFlag;	
 	volatile unsigned int roboteqResponseTmr;
 	volatile unsigned int radioAssocTmr;
 	volatile unsigned int targetAssocTmr;
@@ -85,7 +86,8 @@
 	extern volatile unsigned char roboteqTmr;
 	extern volatile unsigned int twentyMS_Tmr;
 	extern volatile unsigned int secondTmr;
-	extern volatile unsigned int calTmr;
+	extern volatile unsigned int calFlag;
+	extern volatile unsigned int resetFlag;
 	extern volatile unsigned int roboteqResponseTmr;
 	extern volatile unsigned int radioAssocTmr;
 	extern volatile unsigned int targetAssocTmr;
