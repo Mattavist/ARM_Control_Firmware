@@ -20,21 +20,23 @@ int getRoboteqConfirm() {
 	rxWireFlag = 0;
 	while(!rxWireFlag) {
 		if (!roboteqResponseTmr) {
-			radioSendString("Command not acknowledged!\r\n");
+			if (DEBUG) radioSendString("Command not acknowledged!\r\n");
+			roboteqErrCnt++;
 			return 0;
 		}
 	}
 
 	rxWireFlag = 0;
-	radioSend(wireReceived);
+	if (DEBUG) radioSend(wireReceived);
 	if (wireReceived == ROBOTEQ_CONFIRM) {
-		radioSendString("RoboteQ confirmed!\r\n");
+		if (DEBUG) radioSendString("RoboteQ confirmed!\r\n");
 		roboteqErrCnt = 0;
 		//PORTC |= TARGET_LED;
 		return 1;
 	}
 	else {
-		radioSendString("Bad response!\r\n");
+		if (DEBUG) radioSendString("Bad response!\r\n");
+		roboteqErrCnt++;
 		return 0;
 	}
 

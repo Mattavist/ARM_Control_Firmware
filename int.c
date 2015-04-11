@@ -11,16 +11,17 @@ Contains timer and USART RX interrupts Specific to ARM Motion Tracker project
 ISR(TIMER0_OVF_vect) {
 	twentyMS_Tmr--;
 	if(!twentyMS_Tmr) {  // Fires every 20ms
-		#ifdef RECEIVER
-			if(rcvrTmr)
-				rcvrTmr--;
+		if(rcvrTmr)
+			rcvrTmr--;
 
-			if(roboteqTmr)
-				roboteqTmr--;
+		if(roboteqTmr)
+			roboteqTmr--;
+		
+		if (sensorTmr)
+			sensorTmr--;
 
-			if(radioTmr)
-				radioTmr--;
-		#endif
+		if(radioTmr)
+			radioTmr--;
 
 		if(button1Bouncing)
 			button1Bouncing--;

@@ -3,9 +3,10 @@
 #include <avr/io.h>
 
 // Module Definition
-//#define TRANSMITTER
-#define RECEIVER
-#define TARGET 0
+#define TRANSMITTER
+//#define RECEIVER
+#define TARGET 1
+#define DEBUG 1
 
 // Flags and comands
 #define DELAY 10
@@ -24,15 +25,16 @@
 #define NUM_ADC_CHANS 3  // Number of attached ADC sensors
 #define NUM_DIGITAL_CHANS 2  // Number of attached digital sensors
 #define RADIO_ASSOC_LIMIT 2  // Timer for Radio LED
-#define TARGET_ASSOC_LIMIT 5  // Timer for Target LED
+#define TARGET_ASSOC_LIMIT 1  // Timer for Target LED
 #define DEBOUNCE_COUNT 100  // Counter for switch debouncing
 #define ROBOTEQ_CONFIRM '+'  // Confirm character from RoboteQ
 #define ROBOTEQ 1  // RoboteQ identifier
 #define TERMINAL 2  // Terminal identifier
 //#define ROBOTEQ_MODEL "FID=Roboteq v1.3 RCB290 10/10/2013"  // RoboteQ at home
 #define ROBOTEQ_MODEL "FID=Roboteq v1.4a SDC2XXX 11/21/2014"  // Richard's RoboteQ
-#define ROBOTEQ_ERROR_LIMIT 10  // Number of errors before reinitialization
+#define ROBOTEQ_ERROR_LIMIT 5  // Number of errors before reinitialization
 #define RCVR_DELAY 4  // t*20ms delay for sensor data requests
+#define SENSOR_DELAY 4
 #define RADIO_TIMEOUT 3  // t*20ms communication timer
 #define ROBOTEQ_DELAY 4  // t*20ms delay for roboteq communication
 #define PING "^ECHOF 1_"  // Empty command for RoboteQ
@@ -58,6 +60,7 @@
 	volatile unsigned int roboteqResponseTmr;
 	volatile unsigned int radioAssocTmr;
 	volatile unsigned int targetAssocTmr;
+	volatile unsigned int sensorTmr;
 	volatile unsigned int roboteqStatus;
 	volatile unsigned int roboteqErrCnt;
 	volatile unsigned int radioTmr;
@@ -86,6 +89,7 @@
 	extern volatile unsigned int roboteqResponseTmr;
 	extern volatile unsigned int radioAssocTmr;
 	extern volatile unsigned int targetAssocTmr;
+	extern volatile unsigned int sensorTmr;
 	extern volatile unsigned int roboteqStatus;
 	extern volatile unsigned int roboteqErrCnt;
 	extern volatile unsigned int radioTmr;
