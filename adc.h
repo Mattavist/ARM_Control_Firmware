@@ -1,3 +1,3 @@
 void adcInit();
 int getADC(int);
-int avgADS(int);
+int avgADC(int);

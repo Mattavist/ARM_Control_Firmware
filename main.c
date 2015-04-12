@@ -13,8 +13,10 @@ Code for both receiver and transmitter modules. Switch between the two
 #include "serial.h"
 #include "timer.h"
 #include <string.h>
-#include <avr/interrupt.h>
 #include <stdio.h>
+#include <avr/interrupt.h>
+#include <avr/eeprom.h>
+
 
 // Function Prototypes
 void sampleSensorData();
@@ -63,7 +65,6 @@ void sysInit() {
 	timerInit();
 	initSensors();
 	wireSendString("Starting\r\n");
-	//wireSendString("Starting\r\n");
 	sei();
 	PORTC |= POWER_LED;
 }
@@ -77,7 +78,6 @@ int main() {
 
 	// TRANSMITTER MAIN PROGRAM LOOP
 	#ifdef TRANSMITTER 
-
 		wireSendString("Hello\r\n");
 		wireSendString("Hello\r\n");
 
@@ -86,8 +86,7 @@ int main() {
 			if (!radioAssocTmr)
 				PORTC &= ~RADIO_LED;
 
-			// TODO: This happens every time through the loop, too much!
-			// Replace with timer trigger
+			// Sample sensor data
 			if (!sensorTmr) {
 				//wireSendString("Sampling...\r\n");
 				sampleSensorData(); // get 6 adc values and stick them in the buffer
@@ -104,8 +103,10 @@ int main() {
 			if(calFlag)
 				calibration();
 
-			if(resetFlag)
+			if(resetFlag) {
+				eeprom_update_byte((uint8_t*)0x01, 0x00);
 				sysInit();
+			}
 		}
 		#endif
 
@@ -374,7 +375,6 @@ void calibration() {
 	dataMin[2] = 255;
 	dataMax[2] = 0;
 
-	//calTmr = CAL_TIME;		// Number of seconds calibration will run
 	while (calFlag) {
 		for(int i = 0; i < NUM_ADC_CHANS; i++) {
 			temp[i] = avgADC(i*2 + 1)/4;
@@ -386,6 +386,12 @@ void calibration() {
 		processButtons();
 	}
 
+	for(int i = 0; i < NUM_ADC_CHANS; i++) {
+			eeprom_update_byte((uint8_t*)(i+2), dataMin[i]);
+			eeprom_update_byte((uint8_t*)(i+10), dataMax[i]);
+		}
+	eeprom_update_byte((uint8_t*)0x01, 0x01);
+
 	PORTA = 0xC0;
 	PORTC &= ~MISC_LED;	// Turn off LED, End calibration
 }
@@ -395,10 +401,18 @@ void calibration() {
 // Currently only hard coded sensor limits
 // TODO: Change to reading from EEPROM if it has valid data
 void initSensors() {
-	dataMin[0] = 60;
-	dataMax[0] = 151;
-	dataMin[1] = 60;
-	dataMax[1] = 151;
-	dataMin[2] = 0;
-	dataMax[2] = 255;
+	if (eeprom_read_byte((uint8_t*)1)) {
+		for(int i = 0; i < NUM_ADC_CHANS; i++) {
+			dataMin[i] = eeprom_read_byte((uint8_t*)(i+2));
+			dataMax[i] = eeprom_read_byte((uint8_t*)(i+10));
+		}
+	}
+	else {
+		dataMin[0] = 60;
+		dataMax[0] = 151;
+		dataMin[1] = 60;
+		dataMax[1] = 151;
+		dataMin[2] = 0;
+		dataMax[2] = 255;
+	}
 }
