@@ -3,10 +3,10 @@
 #include <avr/io.h>
 
 // Module Definition
-#define TRANSMITTER
-//#define RECEIVER
+//#define TRANSMITTER
+#define RECEIVER
 #define TARGET 1
-#define DEBUG 1
+#define DEBUG 0
 
 // Flags and comands
 #define DELAY 10
@@ -42,6 +42,12 @@
 #define RADIO_SPEED 57600
 #define BOUNCE_TIME 1
 #define CAL_TIME 10
+#define MIN0 60
+#define MAX0 151
+#define MIN1 60
+#define MAX1 151
+#define MIN2 0
+#define MAX2 255
 
 // Shared Variables
 #ifdef MAIN

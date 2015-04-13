@@ -12,10 +12,17 @@ makeCompile: main.c
 	avr-objcopy -j .text -j .data -O ihex main.elf main.hex
 	avrdude -c USBasp -p $(micro) -U flash:w:main.hex:i 
 
-flashCrystal:
+flashNoBOD:
 	# External crystal oscillator 8mhz or greater with max startup time
 	# Disables JTAG so PortC can be used as GPIO pins
-	avrdude -c USBasp -p $(micro) -U lfuse:w:0xde:m -U hfuse:w:0xd9:m	
+	# Enables ~4.5V brownout detection
+	avrdude -c USBasp -p $(micro) -U lfuse:w:0xde:m -U hfuse:w:0xd9:m -U efuse:w:0xFC:m
+
+flashNoBOD:
+	# External crystal oscillator 8mhz or greater with max startup time
+	# Disables JTAG so PortC can be used as GPIO pins
+	# Enables ~4.5V brownout detection
+	avrdude -c USBasp -p $(micro) -U lfuse:w:0xde:m -U hfuse:w:0xd9:m -U efuse:w:0xFF:m
 
 flash8mhzCKOPT:
 	# Enables full voltage swing on XTAL, don't use this

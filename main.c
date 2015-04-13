@@ -27,7 +27,7 @@ int  basicRoboControl();
 int  roboControl();
 void processButtons();
 void initSensors();
-void calibration();
+void calibrateSensors();
 
 // SYSINIT FUNCTION
 // Sets port data directions and initializes systems
@@ -64,7 +64,7 @@ void sysInit() {
 	radioInit();
 	timerInit();
 	initSensors();
-	wireSendString("Starting\r\n");
+	if (DEBUG) wireSendString("Starting\r\n");
 	sei();
 	PORTC |= POWER_LED;
 }
@@ -78,8 +78,6 @@ int main() {
 
 	// TRANSMITTER MAIN PROGRAM LOOP
 	#ifdef TRANSMITTER 
-		wireSendString("Hello\r\n");
-		wireSendString("Hello\r\n");
 
 		while(1) {
 			// Turn off the associate LED if timer expires
@@ -101,10 +99,10 @@ int main() {
 
 			processButtons();
 			if(calFlag)
-				calibration();
+				calibrateSensors();
 
 			if(resetFlag) {
-				eeprom_update_byte((uint8_t*)0x01, 0x00);
+				eeprom_update_byte((uint8_t*)0x10, 0x00);
 				sysInit();
 			}
 		}
@@ -141,7 +139,6 @@ int main() {
 			// Communicate with RoboteQ regularly
 			if(!roboteqTmr && targetIsRoboteQ) {
 				if (dataValid) {
-					//TODO CHANGE THIS TO ROBOCONTROL
 					//if(!roboControl())
 					if(!basicRoboControl())
 						roboteqErrCnt++;
@@ -156,7 +153,7 @@ int main() {
 			// Ready to receive data?
 			if (!rcvrTmr) {
 				if (!targetIsRoboteQ) {
-					//wireSendString("Requesting data...\r\n");
+					if (DEBUG) wireSendString("Requesting data...\r\n");
 				}
 				radioSend(RCVR_READY);
 				rcvrTmr = RCVR_DELAY;
@@ -288,8 +285,9 @@ void dataToTerminal() {
 // Generates terminal strings for sensor data
 int basicRoboControl() {
 	char buf[100];
+	sprintf(buf, "!G 1 %d\r\n", (data[1]*20)-1000);
+	wireSendString(buf);
 
-	// Funky math here is required for proper calculation
 	sprintf(buf, "!G 2 %d\r\n", (data[2]*20)-1000);
 	wireSendString(buf);
 	return 1;
@@ -299,17 +297,9 @@ int basicRoboControl() {
 // ROBOCONTROL FUNCTION
 // Generates and sends commands to RoboteQ based on sensor data
 int roboControl() {
-	if(!setRoboPower(1, 20))
-		return 0;
 	if(!setRoboPosition(1, (data[0]*20)-1000))
 		return 0;
-	if(!setRoboPower(2, 20))
-		return 0;
 	if(!setRoboPosition(2, (data[1]*20)-1000))
-		return 0;
-	if(!setRoboPower(3, 20))
-		return 0;
-	if(!setRoboPosition(3, (data[2]*20)-1000))
 		return 0;
 
 	return 1;
@@ -363,7 +353,7 @@ void processButtons() {
 // CALIBRATION FUNCTION
 // Runs for CAL_TIME seconds constantly grabbing
 // maximum and minimum values on all ADC sensor channels
-void calibration() {
+void calibrateSensors() {
 	unsigned char temp[3];// Initial values and variables
 	PORTC |= MISC_LED;	// Turn on LED, Start calibration
 	PORTA = 0xD5;  // Turn on power to all ADC channels
@@ -375,6 +365,7 @@ void calibration() {
 	dataMin[2] = 255;
 	dataMax[2] = 0;
 
+	// Calibration ends when user presses button again
 	while (calFlag) {
 		for(int i = 0; i < NUM_ADC_CHANS; i++) {
 			temp[i] = avgADC(i*2 + 1)/4;
@@ -385,34 +376,38 @@ void calibration() {
 		}
 		processButtons();
 	}
+	PORTA = 0xC0;  // Turn off ADC power
 
+	// Write the new limits to EEPROM
 	for(int i = 0; i < NUM_ADC_CHANS; i++) {
-			eeprom_update_byte((uint8_t*)(i+2), dataMin[i]);
-			eeprom_update_byte((uint8_t*)(i+10), dataMax[i]);
+			eeprom_update_byte((uint8_t*)(i+0x20), dataMin[i]);
+			eeprom_update_byte((uint8_t*)(i+0x30), dataMax[i]);
 		}
-	eeprom_update_byte((uint8_t*)0x01, 0x01);
+	eeprom_write_byte((uint8_t*)0x10, 0xFF);
 
-	PORTA = 0xC0;
 	PORTC &= ~MISC_LED;	// Turn off LED, End calibration
 }
 
 
 // INITSENSORS FUNCTION
-// Currently only hard coded sensor limits
-// TODO: Change to reading from EEPROM if it has valid data
+// Loads hard-coded or stored calibrated sensor limits
 void initSensors() {
-	if (eeprom_read_byte((uint8_t*)1)) {
+	// Check if byte at 0x01 is high
+	if (eeprom_read_byte((uint8_t*)0x10)) {
+		// Byte is high, load stored calibrated limits
 		for(int i = 0; i < NUM_ADC_CHANS; i++) {
-			dataMin[i] = eeprom_read_byte((uint8_t*)(i+2));
-			dataMax[i] = eeprom_read_byte((uint8_t*)(i+10));
+			dataMin[i] = eeprom_read_byte((uint8_t*)(i+0x20));
+			dataMax[i] = eeprom_read_byte((uint8_t*)(i+0x30));
 		}
 	}
+	// Byte was low, load some hard-coded limits
 	else {
-		dataMin[0] = 60;
-		dataMax[0] = 151;
-		dataMin[1] = 60;
-		dataMax[1] = 151;
-		dataMin[2] = 0;
-		dataMax[2] = 255;
+		eeprom_write_byte((uint8_t*)0x10, 0x00);
+		dataMin[0] = MIN0;
+		dataMax[0] = MAX0;
+		dataMin[1] = MIN1;
+		dataMax[1] = MAX1;
+		dataMin[2] = MIN2;
+		dataMax[2] = MAX2;
 	}
 }

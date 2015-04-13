@@ -57,7 +57,7 @@ int dataToRoboteq(char *str) {
 // Returns 1 if successful, 0 otherwise
 int setRoboPosition(int chan, int pos) {
 	char buf[100];
-	sprintf(buf, "!G %d %d_", chan, pos*10);
+	sprintf(buf, "!G %d %d_", chan, pos);
 	wireSendString(buf);
 	return getRoboteqConfirm();
 }
@@ -68,7 +68,7 @@ int setRoboPosition(int chan, int pos) {
 // Returns 1 if successful, 0 otherwise
 int setRoboPower(int chan, int pow) {
 	char buf[100];
-	sprintf(buf, "!P %d %d_", chan, pow*10);
+	sprintf(buf, "!P %d %d_", chan, pow);
 	wireSendString(buf);
 	return getRoboteqConfirm();
 }
