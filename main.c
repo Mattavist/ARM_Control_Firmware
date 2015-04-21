@@ -139,9 +139,8 @@ int main() {
 			// Communicate with RoboteQ regularly
 			if(!roboteqTmr && targetIsRoboteQ) {
 				if (dataValid) {
-					//if(!roboControl())
-					if(!basicRoboControl())
-						roboteqErrCnt++;
+					//roboControl();
+					basicRoboControl();
 					dataValid = 0;
 				}
 				else  // Feed the watchdog
@@ -221,6 +220,7 @@ void transmitSensorData(char *buffer, int size) {
 		checksum += buffer[i]; 
 	}
 	radioSend(checksum);
+	PORTC |= RADIO_LED;
 }
 
 
@@ -267,7 +267,7 @@ void dataToTerminal() {
 	sprintf(buf, "Min2: %d, Max2: %d\r\n\r\n", dataMin[2], dataMax[2]);
 	wireSendString(buf);
 
-	/*wireSendString("Got good data!\r\n");
+	wireSendString("Got good data!\r\n");
 	sprintf(buf, "ADC0    = %d%c\r\n", data[0], '%');
 	wireSendString(buf);
 	sprintf(buf, "ADC1    = %d%c\r\n", data[1], '%');
@@ -277,7 +277,7 @@ void dataToTerminal() {
 	sprintf(buf, "Switch0 = %s\r\n", (data[3])?"Open":"Closed");
 	wireSendString(buf);
 	sprintf(buf, "Switch1 = %s\r\n\n", (data[4])?"Open":"Closed");
-	wireSendString(buf);*/
+	wireSendString(buf);
 }
 
 
@@ -285,7 +285,7 @@ void dataToTerminal() {
 // Generates terminal strings for sensor data
 int basicRoboControl() {
 	char buf[100];
-	sprintf(buf, "!G 1 %d\r\n", (data[1]*20)-1000);
+	sprintf(buf, "!G 1 %d\r\n", -((data[1]*20)-1000));
 	wireSendString(buf);
 
 	sprintf(buf, "!G 2 %d\r\n", (data[2]*20)-1000);
@@ -297,9 +297,9 @@ int basicRoboControl() {
 // ROBOCONTROL FUNCTION
 // Generates and sends commands to RoboteQ based on sensor data
 int roboControl() {
-	if(!setRoboPosition(1, (data[0]*20)-1000))
+	if(!setRoboPosition(1, -((data[1]*20)-1000)))
 		return 0;
-	if(!setRoboPosition(2, (data[1]*20)-1000))
+	if(!setRoboPosition(2, (data[2]*20)-1000))
 		return 0;
 
 	return 1;
@@ -356,6 +356,7 @@ void processButtons() {
 void calibrateSensors() {
 	unsigned char temp[3];// Initial values and variables
 	PORTC |= MISC_LED;	// Turn on LED, Start calibration
+	PORTC &= ~RADIO_LED;
 	PORTA = 0xD5;  // Turn on power to all ADC channels
 
 	dataMin[0] = 255;

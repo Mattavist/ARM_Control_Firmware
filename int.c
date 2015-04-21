@@ -74,7 +74,6 @@ ISR(USART1_RX_vect) {
 	radioReceived = UDR1;
 	if (radioReceived == RCVR_READY) {
 		rcvrReadyFlag = 1;
-		PORTC |= RADIO_LED;
 		radioAssocTmr = RADIO_ASSOC_LIMIT;
 	}
 	else if (radioReceived == START_BYTE) {
