@@ -139,8 +139,8 @@ int main() {
 			// Communicate with RoboteQ regularly
 			if(!roboteqTmr && targetIsRoboteQ) {
 				if (dataValid) {
-					//roboControl();
-					basicRoboControl();
+					roboControl();
+					//basicRoboControl();
 					dataValid = 0;
 				}
 				else  // Feed the watchdog
@@ -181,21 +181,20 @@ void sampleSensorData() {
 	char buf[100];
 
 	PORTA = 0xC1;  // Power to ADC channel 1
-	temp = (getADC(1)/4)*100/(dataMax[0] - dataMin[0]);
 	temp = ((avgADC(1)/4)-dataMin[0])*100/(dataMax[0] - dataMin[0]);
-	if (temp > data[0] + 1 || temp < data[0] - 1) {
+	if (temp > data[0] + FILTER_THRESHOLD || temp < data[0] - FILTER_THRESHOLD) {
 		data[0] = temp;
 	}
 
 	PORTA = 0xC4;  // Power to ADC channel 3
 	temp = ((avgADC(3)/4)-dataMin[1])*100/(dataMax[1] - dataMin[1]);
-	if (temp > data[1] + 1 || temp < data[1] - 1) {
+	if (temp > data[1] + FILTER_THRESHOLD || temp < data[1] - FILTER_THRESHOLD) {
 		data[1] = temp;
 	}
 
 	PORTA = 0xD0;  // Power to ADC channel 5
 	temp = ((avgADC(5)/4)-dataMin[2])*100/(dataMax[2] - dataMin[2]);
-	if (temp > data[2] + 1 || temp < data[2] - 1) {
+	if (temp > data[2] + FILTER_THRESHOLD || temp < data[2] - FILTER_THRESHOLD) {
 		data[2] = temp;
 	}
 	PORTA = 0xC0;

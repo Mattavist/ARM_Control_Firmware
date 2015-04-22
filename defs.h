@@ -48,6 +48,7 @@
 #define MAX1 151
 #define MIN2 0
 #define MAX2 255
+#define FILTER_THRESHOLD 2
 
 // Shared Variables
 #ifdef MAIN
